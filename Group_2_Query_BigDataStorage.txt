@@ -1,0 +1,336 @@
+VALIDATION
+
+{
+  $jsonSchema: {
+    bsonType: 'object',
+    required: [
+      'guest_satisfaction_overall',
+      'multi',
+      'lng',
+      'lat',
+      'weekend',
+      'realSum',
+      'person_capacity',
+      'room_type'
+    ],
+    properties: {
+      guest_satisfaction_overall: {
+        bsonType: 'int',
+        minimum: 0,
+        maximum: 100,
+        description: 'Guest satisfaction has to be a number between 0 and 100.'
+      },
+      multi: {
+        bsonType: 'int',
+        'enum': [
+          0,
+          1
+        ],
+        description: 'Multi must be an either 0 or 1.'
+      },
+      lng: {
+        bsonType: 'number',
+        minimum: -180,
+        maximum: 180,
+        description: 'Longitude must be in [-180, 180].'
+      },
+      lat: {
+        bsonType: 'number',
+        minimum: -90,
+        maximum: 90,
+        description: 'Latitude must be in [-90, 90].'
+      },
+      weekend: {
+        bsonType: 'bool',
+        description: 'Weekend must be boolean.'
+      },
+      realSum: {
+        bsonType: 'number',
+        description: 'realSum must be greater than zero.'
+      },
+      person_capacity: {
+        bsonType: 'number',
+        minimum: 0,
+        description: 'person_capacity must be greater than zero.'
+      },
+      room_type: {
+        bsonType: 'string',
+        'enum': [
+          'Private room',
+          'Shared room',
+          'Entire home/apt'
+        ],
+        description: 'Room type must be \'Private room\', \'Shared room\', or \'Entire home/apt\'.'
+      }
+    }
+  }
+}
+
+
+Story 1:
+
+Query 1 
+db.lisbon.find({
+  "person_capacity": { $gte: 4 },
+  "weekend": false
+})
+
+Query 2
+
+db.lisbon.find(
+  {
+    "person_capacity": { $gte: 4 },
+    "weekend": false,
+    "realSum": { $lte: 120 },
+  },
+  {
+    "room_shared": 1,
+    "room_type": 1,
+    "realSum":1
+  }
+).sort({ "realSum": 1 }).limit(3)
+
+
+Query 3
+
+db.lisbon.find(
+  {
+    "person_capacity": { $gte: 4 },
+    "weekend": false,
+    "realSum": { $lte: 120 },
+    "room_shared": false,
+  },
+  {
+    "realSum": 1,
+    "dist": 1,
+    "attr_index_norm" :1,
+    "room_shared": 1
+  }
+).sort({ realSum: 1 }).limit(3)
+
+
+Query 4
+db.lisbon.find({
+  person_capacity: { $gte: 4 },
+  weekend: false,
+  realSum: { $lte: 110 },
+  room_shared: false,
+})
+
+
+Story 2:
+Query 1
+db.amsterdam.find({
+  "weekend": true,
+  "person_capacity": { $gte: 2 }
+})
+
+Query 2
+db.amsterdam.find({
+  "weekend": true,
+   "room_shared": false,
+  "person_capacity": { $gte: 2 }
+},
+  {
+    "realSum": 1,
+    "dist": 1,
+     "room_shared": 1,
+     "guest_satisfaction_overall" : 1,
+     "cleanliness_rating":1
+  }).sort({ "dist" : 1 }).limit(3)
+
+
+Query 3
+db.amsterdam.find({
+  "weekend": true,
+   "room_shared": false,
+  "person_capacity": { $gte: 2 },
+   "cleanliness_rating": { $gte: 9 },
+   "guest_satisfaction_overall" : { $gte: 85 }
+},
+  {
+    "realSum": 1,
+    "dist": 1,
+     "room_shared": 1,
+     "guest_satisfaction_overall" :1,
+     "cleanliness_rating":1
+  }).sort({ "dist" : 1 }).limit(5)
+
+
+Query 4
+db.amsterdam.find({
+  "weekend": true,
+   "room_shared": false,
+  "person_capacity": { $gte: 2 },
+   "cleanliness_rating": { $gte: 9 },
+   "guest_satisfaction_overall" : { $gte: 85 },
+   "dist" : { $lte: 1 }
+},
+  {
+    "realSum": 1,
+    "dist": 1,
+    "guest_satisfaction_overall" :1,
+    "cleanliness_rating":1
+  }).sort({"realSum": 1}).limit(1)
+
+
+
+Story 3
+
+Query 1
+db.vienna.find({
+  "weekend": false,
+  "person_capacity": { $gte: 6 }
+})
+
+Query 2:
+db.vienna.find({
+"person_capacity": { $gte: 6 },
+"weekend": false
+}, { "metro_dist": 1, "realSum": 1 }).sort({ "realSum": 1 }).limit(5)
+
+
+Query 3:
+db.vienna.find({
+"person_capacity": { $gte: 6 },
+"weekend": false,
+"room_shared": false,
+"bedrooms": { $gte: 2 },
+"realSum": { $lte: 180}
+}, { "metro_dist": 1, "realSum": 1, "guest_satisfaction_overall": 1 }).sort({ "guest_satisfaction_overall": -1 }).limit(5)
+
+
+Query 4:
+db.vienna.find({
+"person_capacity": { $gte: 6 },
+"weekend": false,
+"room_shared": false,
+"bedrooms": { $gte: 2 },
+"guest_satisfaction_overall": { $gte: 80},
+}, { "metro_dist": 1, "realSum": 1, "guest_satisfaction_overall": 1 }).sort({ "realSum": 1 }).limit(1)
+
+
+INDEX:
+Index 1
+db.amsterdam.createIndex({"realSum":1, "person_capacity": 1})
+
+db.amsterdam.find({"realSum": {$gte:80 , $lte: 130}, "person_capacity": 2})
+
+db.amsterdam.find({"realSum": {$gte:80 , $lte: 130}, "person_capacity": 2}).explain("executionStats") 
+
+Index 2:
+db.amsterdam.createIndex({"bedrooms": -1})
+
+db.london.find({"person_capacity": {$gte:6}})
+
+Index 3:
+
+db.amsterdam.createIndex({"guest_satisfaction_overall":-1})
+
+db.amsterdam.find({"guest_satisfaction_overall": {$gte: 90, $lte: 95}})
+
+AGGREGATE:
+
+Analysis 1: Comparing host and super-host performances
+
+db.lisbon.aggregate([
+  {
+	$match: {
+  	dist: { $lte: 2 }
+	}},
+  {
+	$group: {
+  	_id: "$host_is_superhost",
+  	avgRealSum: { $avg: "$realSum" },
+  	avgCleanlinessRating: { $avg: "$cleanliness_rating" },
+  	avgGuestSatisfactionOverall: { $avg: "$guest_satisfaction_overall" },
+  	count: { $sum: 1 }} }])
+
+db.lisbon.aggregate([
+  {$match: {
+  host_is_superhost: true}},
+  {$sort: { guest_satisfaction_overall: 1 }},
+  {$limit: 1 },
+  {$project: {
+  _id: 0,
+  realSum: 1,
+  room_type: 1,
+  guest_satisfaction_overall: 1,
+  cleanliness_rating: 1}}])
+
+db.lisbon.find(
+  { "host_is_superhost": true },
+  { "realSum": 1, "room_type": 1, "guest_satisfaction_overall": 1, "cleanliness_rating": 1 }
+).sort({ "guest_satisfaction_overall": 1 }).limit(1)
+
+
+db.lisbon.countDocuments({
+  host_is_superhost: true,
+  $or: [
+	{ guest_satisfaction_overall: { $lt: 70 } },
+	{ cleanliness_rating: { $lt: 7 } }
+]})
+
+Analysis 2 The differences in average price in the city
+
+db.amsterdam.aggregate([
+  {$match: {
+  	room_type: "Private room",
+	person_capacity: 2,
+  	dist: { $lt: 2 }}},
+  {$group: {
+  	_id: null,
+  	avgRealSum: { $avg: "$realSum" }}}])
+
+db.amsterdam.countDocuments({
+  room_type: "Private room",
+  dist: { $lt: 2 },
+  person_capacity: 2,
+  realSum: { $lt: 400}
+})
+
+db.rome.aggregate([
+  {$match: {
+  	room_type: "Private room",
+	person_capacity: 2,
+  	dist: { $lt: 2 }}},
+  {$group: {
+  	_id: null,
+  	avgRealSum: { $avg: "$realSum" }}}])
+
+Analysis 3 Differences in average price between weekends and days of the week
+
+db.paris.aggregate([
+  { $group: {
+      _id: "$weekend",
+      avgPrice: { $avg: "$realSum" }
+ }}])
+
+Analysis 4 Price distribution impact on rental characteristics and guest satisfaction
+
+db.lisbon.aggregate([
+  {
+    $bucket: {
+      groupBy: "$realSum",
+      boundaries: [0, 200, 400, 600],
+      default: "600+",
+      output: {
+   	 count: { $sum: 1 },
+   	 average_person_capacity: { $avg: "$person_capacity" },
+   	 cleanliness_rating: { $avg: "$cleanliness_rating" },
+   	 guest_satisfaction_overall: { $avg: "$guest_satisfaction_overall" },
+   	 bedrooms: { $avg: "$bedrooms" },
+        	dist: { $avg: "$dist" },
+  	metro_dist: { $avg: "$metro_dist" }
+      }}}])
+
+Analysis 5: Average price by room type:
+
+db.budapest.aggregate([
+  {
+    $group: {
+      _id: "$room_type",
+      avgPrice: { $avg: "$realSum" }
+}}])
+
+
